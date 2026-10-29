@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Recharge" />
+  <meta name="theme-color" content="#0f0f1a" />
+  <meta name="description" content="Recharge Tracker — digital wallet for grocery allowances and daily expenses." />
+  <!-- Supabase public credentials — anon key is safe here (protected by RLS) -->
+  <meta name="sb-url"  content="https://frclmrqpussojckqnndq.supabase.co" />
+  <meta name="sb-anon" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyY2xtcnFwdXNzb2pja3FubmRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMzI5NTAsImV4cCI6MjEwODgwODk1MH0.fk4-_f4lVbX2UU7SNTVdeqQSZzc4N_JDNpABMbK_vxE" />
+  <title>Recharge Tracker</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-512.png" />
+  <link rel="stylesheet" href="/style.css" />
+
+  <!-- Supabase JS SDK (free CDN, no account needed) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-logo">₹</div>
+  <h1 class="auth-title">Recharge Tracker</h1>
+  <p class="auth-subtitle">Your grocery wallet, always balanced</p>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Sign In</button>
+      <button class="auth-tab" data-tab="signup">Create Account</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="login-form">
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" id="btn-login">Sign In</button>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="signup-form" class="hidden">
+      <div class="form-group">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password (min 6 chars)</label>
+        <input type="password" id="signup-password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" id="btn-signup">Create Account</button>
+    </div>
+
+    <p class="auth-msg" id="auth-msg"></p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     APP SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="app-screen">
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="top-bar-title">₹&nbsp;<span>Recharge</span></div>
+    <button class="btn-logout" id="btn-logout">Sign Out</button>
+  </header>
+
+  <!-- Scrollable main content -->
+  <div class="main-content">
+
+    <!-- ── DAILY LEDGER VIEW ──────────────────────────────────── -->
+    <div id="view-daily" class="view active">
+
+      <!-- Wallet Balance Card -->
+      <div class="wallet-card">
+        <div class="wallet-label">Current Wallet Balance</div>
+        <div class="wallet-amount" id="wallet-balance">₹0.00</div>
+        <div class="wallet-stats">
+          <div class="wallet-stat">
+            <div class="wallet-stat-label">Received Today</div>
+            <div class="wallet-stat-value stat-green" id="today-received">₹0.00</div>
+          </div>
+          <div class="wallet-stat">
+            <div class="wallet-stat-label">Spent Today</div>
+            <div class="wallet-stat-value stat-red" id="today-spent">₹0.00</div>
+          </div>
+          <div class="wallet-stat">
+            <div class="wallet-stat-label">Today's Balance</div>
+            <div class="wallet-stat-value" id="today-closing">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transaction Entry Form -->
+      <div class="entry-card">
+        <div class="entry-card-title">New Transaction</div>
+
+        <div class="type-toggle">
+          <button class="type-btn" id="btn-type-expense">💸 Spent Money</button>
+          <button class="type-btn" id="btn-type-recharge">💰 Received Money</button>
+        </div>
+
+        <div class="entry-row">
+          <input
+            class="entry-input"
+            type="text"
+            id="txn-name"
+            placeholder="e.g. Milk, Vegetables…"
+            autocomplete="off"
+            maxlength="80"
+          />
+          <input
+            class="entry-input"
+            type="number"
+            id="txn-amount"
+            placeholder="Amount ₹"
+            min="0.01"
+            step="0.01"
+            inputmode="decimal"
+          />
+        </div>
+
+        <button class="btn-save" id="btn-save">Save Transaction</button>
+        <div class="save-msg" id="save-msg"></div>
+      </div>
+
+      <!-- Daily Ledger -->
+      <div class="section-header">
+        <div class="section-title">Transaction History</div>
+      </div>
+      <div id="daily-container">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <!-- ── WEEKLY REPORT VIEW ────────────────────────────────── -->
+    <div id="view-weekly" class="view">
+      <div class="section-header">
+        <div class="section-title">Weekly Report</div>
+      </div>
+      <div class="report-nav">
+        <button class="btn-nav" id="btn-week-prev">&#8592; Prev</button>
+        <div class="report-period" id="weekly-period">This Week</div>
+        <button class="btn-nav" id="btn-week-next">Next &#8594;</button>
+      </div>
+      <div id="weekly-container">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <!-- ── MONTHLY REPORT VIEW ───────────────────────────────── -->
+    <div id="view-monthly" class="view">
+      <div class="section-header">
+        <div class="section-title">Monthly Report</div>
+      </div>
+      <div class="report-nav">
+        <button class="btn-nav" id="btn-month-prev">&#8592; Prev</button>
+        <div class="report-period" id="monthly-period">This Month</div>
+        <button class="btn-nav" id="btn-month-next">Next &#8594;</button>
+      </div>
+      <div id="monthly-container">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="nav-bar">
+    <button class="nav-item active" data-view="daily">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      Daily
+    </button>
+    <button class="nav-item" data-view="weekly">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8"  y1="2" x2="8"  y2="6"/>
+        <line x1="3"  y1="10" x2="21" y2="10"/>
+      </svg>
+      Weekly
+    </button>
+    <button class="nav-item" data-view="monthly">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+      Monthly
+    </button>
+  </nav>
+
+</div><!-- /app-screen -->
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
